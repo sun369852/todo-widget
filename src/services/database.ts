@@ -47,11 +47,11 @@ export async function getTodos(): Promise<any[]> {
   return await db.select("SELECT * FROM todos ORDER BY created_at DESC");
 }
 
-export async function addTodo(title: string, priority: string = 'medium', category: string = 'Default', dueDate?: string): Promise<void> {
+export async function addTodo(title: string, priority: string = 'medium'): Promise<void> {
   const db = await getDb();
   await db.execute(
-    "INSERT INTO todos (title, priority, category, due_date) VALUES (?, ?, ?, ?)",
-    [title, priority, category, dueDate || null]
+    "INSERT INTO todos (title, priority) VALUES (?, ?)",
+    [title, priority]
   );
 }
 

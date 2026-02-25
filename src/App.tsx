@@ -6,20 +6,16 @@ import "./App.css";
 function App() {
   const {
     todos,
-    categories,
     filter,
     searchQuery,
-    selectedCategory,
     isLoading,
     error,
     loadTodos,
-    loadCategories,
     addTodo,
     toggleTodo,
     deleteTodo,
     setFilter,
     setSearchQuery,
-    setSelectedCategory,
   } = useTodoStore();
 
   const [newTodoTitle, setNewTodoTitle] = useState("");
@@ -31,7 +27,6 @@ function App() {
 
   useEffect(() => {
     loadTodos();
-    loadCategories();
   }, []);
 
   // Filter todos
@@ -41,14 +36,13 @@ function App() {
       (filter === "active" && !todo.completed) ||
       (filter === "completed" && todo.completed);
     const matchesSearch = todo.title.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === "All" || todo.category === selectedCategory;
-    return matchesFilter && matchesSearch && matchesCategory;
+    return matchesFilter && matchesSearch;
   });
 
   const handleAddTodo = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTodoTitle.trim()) return;
-    await addTodo(newTodoTitle, newTodoPriority, selectedCategory === "All" ? "Default" : selectedCategory);
+    await addTodo(newTodoTitle, newTodoPriority);
     setNewTodoTitle("");
     setNewTodoPriority("medium");
     setShowAddForm(false);
@@ -85,9 +79,13 @@ function App() {
     setNewTodoPriority("medium");
   };
 
+  // Close window
+  const handleClose = async () => {
+    await getCurrentWindow().close();
+  };
+
   // Window dragging - only on header
   const handleDragMouseDown = async (e: React.MouseEvent) => {
-    // Only start dragging if clicking on the header area
     if ((e.target as HTMLElement).closest('.app-header')) {
       await getCurrentWindow().startDragging();
     }
@@ -107,29 +105,18 @@ function App() {
 
   return (
     <div className="app-container" onMouseDown={handleDragMouseDown}>
-      {/* Header - empty for dragging only */}
+      {/* Header */}
       <header className="app-header">
-      </header>
-
-      {/* Category Tabs */}
-      <div className="category-tabs">
-        <button
-          className={`category-tab ${selectedCategory === "All" ? "active" : ""}`}
-          onClick={() => setSelectedCategory("All")}
-        >
-          全部
-        </button>
-        {categories.map((cat) => (
-          <button
-            key={cat.id}
-            className={`category-tab ${selectedCategory === cat.name ? "active" : ""}`}
-            onClick={() => setSelectedCategory(cat.name)}
-            style={{ borderLeftColor: cat.color }}
-          >
-            {cat.name}
+        <span className="app-title">待办</span>
+        <div className="header-actions">
+          <button onClick={handleClose} className="close-btn" title="关闭">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
           </button>
-        ))}
-      </div>
+        </div>
+      </header>
 
       {/* Search */}
       <div className="search-bar">

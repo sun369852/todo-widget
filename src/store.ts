@@ -14,7 +14,7 @@ interface TodoStore {
   // Actions
   loadTodos: () => Promise<void>;
   loadCategories: () => Promise<void>;
-  addTodo: (title: string, priority: string, category: string, dueDate?: string) => Promise<void>;
+  addTodo: (title: string, priority: string) => Promise<void>;
   updateTodo: (id: number, title: string, priority: string, category: string, dueDate?: string) => Promise<void>;
   toggleTodo: (id: number, completed: boolean) => Promise<void>;
   deleteTodo: (id: number) => Promise<void>;
@@ -70,39 +70,69 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
     }
   },
 
-  addTodo: async (title, priority, category, dueDate) => {
+  addTodo: async (title: string, priority: string) => {
+    // 乐观更新：先添加本地状态
+    const newTodo: Todo = {
+      id: Date.now(),
+      title,
+      completed: false,
+      priority: priority as 'low' | 'medium' | 'high',
+      category: 'Default',
+      createdAt: new Date().toISOString(),
+    };
+    const previousTodos = get().todos;
+    set({ todos: [newTodo, ...get().todos] });
     try {
-      await db.addTodo(title, priority, category, dueDate);
-      await get().loadTodos();
+      await db.addTodo(title, priority);
     } catch (error) {
-      set({ error: String(error) });
+      // 回滚状态
+      set({ todos: previousTodos, error: String(error) });
     }
   },
 
   updateTodo: async (id, title, priority, category, dueDate) => {
+    // 乐观更新：先更新本地状态
+    const previousTodos = get().todos;
+    set({
+      todos: get().todos.map((todo) =>
+        todo.id === id ? { ...todo, title, priority: priority as 'low' | 'medium' | 'high', category, dueDate } : todo
+      ),
+    });
     try {
       await db.updateTodo(id, title, priority, category, dueDate);
-      await get().loadTodos();
     } catch (error) {
-      set({ error: String(error) });
+      // 回滚状态
+      set({ todos: previousTodos, error: String(error) });
     }
   },
 
   toggleTodo: async (id, completed) => {
+    // 乐观更新：先更新本地状态
+    const previousTodos = get().todos;
+    set({
+      todos: get().todos.map((todo) =>
+        todo.id === id ? { ...todo, completed } : todo
+      ),
+    });
     try {
       await db.toggleTodo(id, completed);
-      await get().loadTodos();
     } catch (error) {
-      set({ error: String(error) });
+      // 回滚状态
+      set({ todos: previousTodos, error: String(error) });
     }
   },
 
   deleteTodo: async (id) => {
+    // 乐观更新：先更新本地状态
+    const previousTodos = get().todos;
+    set({
+      todos: get().todos.filter((todo) => todo.id !== id),
+    });
     try {
       await db.deleteTodo(id);
-      await get().loadTodos();
     } catch (error) {
-      set({ error: String(error) });
+      // 回滚状态
+      set({ todos: previousTodos, error: String(error) });
     }
   },
 
