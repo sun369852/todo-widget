@@ -23,8 +23,25 @@
         "transparent": true,
         "alwaysOnTop": true,
         "skipTaskbar": true,
-        "visible": true,
+        "visible": false,
         "center": true,
+        "shadow": false
+      },
+      {
+        "title": "Todo Bubble",
+        "label": "bubble",
+        "width": 70,
+        "height": 70,
+        "resizable": false,
+        "decorations": false,
+        "transparent": false,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "visible": true,
+        "center": false,
+        "x": 1200,
+        "y": 500,
+        "shadow": false
       }
     ],
     "security": {

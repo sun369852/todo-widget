@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useTodoStore } from "./store";
-import { getCurrentWindow } from "@tauri-apps/api/window";
+import { getCurrentWindow, getAllWindows } from "@tauri-apps/api/window";
+import { emit } from "@tauri-apps/api/event";
+import BubbleWindow from "./components/BubbleWindow";
 import "./App.css";
 
 function App() {
@@ -24,10 +26,26 @@ function App() {
   const [editingTodo, setEditingTodo] = useState<number | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editPriority, setEditPriority] = useState("medium");
+  const [windowLabel, setWindowLabel] = useState<string>("");
 
   useEffect(() => {
+    const getLabel = async () => {
+      const label = getCurrentWindow().label;
+      setWindowLabel(label);
+    };
+    getLabel();
     loadTodos();
   }, []);
+
+  // Render bubble window
+  if (windowLabel === "bubble") {
+    return <BubbleWindow />;
+  }
+
+  // Loading state - don't render main UI until we know the window label
+  if (!windowLabel) {
+    return null;
+  }
 
   // Filter todos
   const filteredTodos = todos.filter((todo) => {
@@ -79,9 +97,9 @@ function App() {
     setNewTodoPriority("medium");
   };
 
-  // Close window - hide to tray
+  // Close window - hide main and show bubble
   const handleClose = async () => {
-    await getCurrentWindow().hide();
+    await emit("show-bubble", {});
   };
 
   // Window dragging - only on header
