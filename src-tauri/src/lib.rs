@@ -36,8 +36,9 @@ fn show_main_window(app: tauri::AppHandle) {
     if let Some(main) = app.get_webview_window("main") {
         // 将主窗口定位到气泡附近（右下角对齐）
         if let Some(pos) = bubble_pos {
-            let main_x = (pos.x + 70 - 360).max(0);
-            let main_y = (pos.y + 70 - 520).max(0);
+            // Bubble window: 100x100, circle center at (50,50)
+            let main_x = (pos.x + 50 - 360).max(0);
+            let main_y = (pos.y + 50 - 520).max(0);
             let _ = main.set_position(tauri::PhysicalPosition::new(main_x, main_y));
         }
         let _ = main.show();

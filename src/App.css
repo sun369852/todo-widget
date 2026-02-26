@@ -463,12 +463,16 @@ body {
   user-select: none;
 }
 
-/* Bubble window root - transparent background */
+/* Bubble window root - transparent, centered layout */
 html,
 body,
 #root {
   background: transparent !important;
   margin: 0;
   padding: 0;
-  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }

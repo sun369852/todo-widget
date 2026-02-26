@@ -3,35 +3,49 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { invoke } from "@tauri-apps/api/core";
 
 function BubbleWindow() {
-  const dragTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const startPosRef = useRef<{ x: number; y: number } | null>(null);
   const isDraggingRef = useRef(false);
+  const isContextMenuRef = useRef(false);
 
-  // 左键按下：150ms 延时后才进入拖拽
+  // 左键按下：记录起始位置（不立即拖拽）
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button !== 0) return;
     isDraggingRef.current = false;
-
-    dragTimerRef.current = setTimeout(() => {
-      isDraggingRef.current = true;
-      getCurrentWindow().startDragging();
-    }, 150);
+    isContextMenuRef.current = false;
+    startPosRef.current = { x: e.screenX, y: e.screenY };
   };
 
-  // 左键松开：如果未进入拖拽模式 → 视为点击
-  const handleMouseUp = () => {
-    if (dragTimerRef.current) {
-      clearTimeout(dragTimerRef.current);
-      dragTimerRef.current = null;
+  // 鼠标移动：超过 5px 阈值后启动拖拽（无延迟，立即响应）
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!startPosRef.current || isDraggingRef.current) return;
+    const dx = e.screenX - startPosRef.current.x;
+    const dy = e.screenY - startPosRef.current.y;
+    if (Math.sqrt(dx * dx + dy * dy) > 5) {
+      isDraggingRef.current = true;
+      getCurrentWindow().startDragging();
     }
-    if (!isDraggingRef.current) {
+  };
+
+  // 左键松开：未拖拽 → 点击打开主窗口
+  const handleMouseUp = () => {
+    if (isContextMenuRef.current) {
+      isContextMenuRef.current = false;
+      startPosRef.current = null;
+      return;
+    }
+    if (!isDraggingRef.current && startPosRef.current) {
       invoke("show_main_window");
     }
+    startPosRef.current = null;
     isDraggingRef.current = false;
   };
 
-  // 右键：调用 Rust 原生系统菜单
+  // 右键：弹出原生系统菜单（不触发点击逻辑）
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
+    isContextMenuRef.current = true;
+    startPosRef.current = null;
+    isDraggingRef.current = false;
     invoke("show_bubble_menu");
   };
 
@@ -39,6 +53,7 @@ function BubbleWindow() {
     <div
       className="bubble-container"
       onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onContextMenu={handleContextMenu}
     >
