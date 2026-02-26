@@ -24,9 +24,7 @@
         "alwaysOnTop": true,
         "skipTaskbar": true,
         "visible": true,
-        "center": false,
-        "x": 100,
-        "y": 100
+        "center": true,
       }
     ],
     "security": {

@@ -79,9 +79,9 @@ function App() {
     setNewTodoPriority("medium");
   };
 
-  // Close window
+  // Close window - hide to tray
   const handleClose = async () => {
-    await getCurrentWindow().close();
+    await getCurrentWindow().hide();
   };
 
   // Window dragging - only on header
