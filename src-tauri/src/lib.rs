@@ -4,15 +4,66 @@ use tauri::{
     Manager, WindowEvent, Listener,
 };
 
+// ===== Tauri Commands =====
+
+/// 退出应用
 #[tauri::command]
 fn quit_app() {
     std::process::exit(0);
 }
 
+/// 关闭主窗口 → 显示气泡
+#[tauri::command]
+fn close_to_bubble(app: tauri::AppHandle) {
+    if let Some(main) = app.get_webview_window("main") {
+        let _ = main.hide();
+    }
+    if let Some(bubble) = app.get_webview_window("bubble") {
+        let _ = bubble.show();
+    }
+}
+
+/// 点击气泡 → 显示主窗口（在气泡附近）
+#[tauri::command]
+fn show_main_window(app: tauri::AppHandle) {
+    let mut bubble_pos = None;
+    if let Some(bubble) = app.get_webview_window("bubble") {
+        if let Ok(pos) = bubble.outer_position() {
+            bubble_pos = Some(pos);
+        }
+        let _ = bubble.hide();
+    }
+    if let Some(main) = app.get_webview_window("main") {
+        // 将主窗口定位到气泡附近（右下角对齐）
+        if let Some(pos) = bubble_pos {
+            let main_x = (pos.x + 70 - 360).max(0);
+            let main_y = (pos.y + 70 - 520).max(0);
+            let _ = main.set_position(tauri::PhysicalPosition::new(main_x, main_y));
+        }
+        let _ = main.show();
+        let _ = main.set_focus();
+    }
+}
+
+/// 气泡右键 → 弹出原生系统菜单
+#[tauri::command]
+fn show_bubble_menu(app: tauri::AppHandle, window: tauri::WebviewWindow) {
+    let quit_item = MenuItem::with_id(&app, "bubble-quit", "退出", true, None::<&str>).unwrap();
+    let menu = Menu::with_items(&app, &[&quit_item]).unwrap();
+    let _ = window.popup_menu(&menu);
+}
+
+// ===== App Setup =====
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![quit_app])
+        .invoke_handler(tauri::generate_handler![
+            quit_app,
+            close_to_bubble,
+            show_main_window,
+            show_bubble_menu,
+        ])
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_sql::Builder::default().build())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
@@ -22,7 +73,7 @@ pub fn run() {
         ))
         .plugin(tauri_plugin_store::Builder::default().build())
         .setup(|app| {
-            // Force window configurations to remove decorations and shadows
+            // 去除窗口装饰和阴影
             if let Some(main_window) = app.get_webview_window("main") {
                 let _ = main_window.set_decorations(false);
                 let _ = main_window.set_shadow(false);
@@ -31,11 +82,11 @@ pub fn run() {
                 let _ = bubble_window.set_decorations(false);
                 let _ = bubble_window.set_shadow(false);
             }
-            // Create tray menu
+
+            // 创建系统托盘
             let quit_item = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&quit_item])?;
 
-            // Create tray icon
             let _tray = TrayIconBuilder::new()
                 .icon(app.default_window_icon().cloned().unwrap())
                 .menu(&menu)
@@ -65,7 +116,7 @@ pub fn run() {
                 })
                 .build(app)?;
 
-            // Handle main window close event - hide main and show bubble
+            // 主窗口关闭事件 → 阻止关闭，隐藏主窗口，显示气泡
             let main_window = app.get_webview_window("main").unwrap();
             let main_window_clone = main_window.clone();
             let app_handle = app.handle().clone();
@@ -73,14 +124,13 @@ pub fn run() {
                 if let WindowEvent::CloseRequested { api, .. } = event {
                     api.prevent_close();
                     let _ = main_window_clone.hide();
-                    // Show bubble window
                     if let Some(bubble_window) = app_handle.get_webview_window("bubble") {
                         let _ = bubble_window.show();
                     }
                 }
             });
 
-            // Handle bubble window close event - hide bubble and show main
+            // 气泡窗口关闭事件 → 阻止关闭
             let bubble_window = app.get_webview_window("bubble").unwrap();
             bubble_window.on_window_event(move |event| {
                 if let WindowEvent::CloseRequested { api, .. } = event {
@@ -88,37 +138,18 @@ pub fn run() {
                 }
             });
 
-            // Listen for bubble click event from frontend
-            let app_handle3 = app.handle().clone();
-            app.listen("show-main", move |_| {
-                if let Some(bubble) = app_handle3.get_webview_window("bubble") {
-                    let _ = bubble.hide();
+            // 处理气泡右键菜单的点击事件
+            app.on_menu_event(move |app, event| {
+                if event.id.as_ref() == "bubble-quit" {
+                    app.exit(0);
                 }
-                if let Some(main) = app_handle3.get_webview_window("main") {
-                    let _ = main.show();
-                    let _ = main.set_focus();
-                }
-            });
-
-            // Listen for show-bubble event from frontend
-            let app_handle4 = app.handle().clone();
-            app.listen("show-bubble", move |_| {
-                if let Some(main) = app_handle4.get_webview_window("main") {
-                    let _ = main.hide();
-                }
-                if let Some(bubble) = app_handle4.get_webview_window("bubble") {
-                    let _ = bubble.show();
-                }
-            });
-
-            // Listen for quit-app event from frontend (right-click bubble)
-            app.listen("quit-app", |_| {
-                std::process::exit(0);
             });
 
             #[cfg(debug_assertions)]
             {
-                main_window.open_devtools();
+                if let Some(main_win) = app.get_webview_window("main") {
+                    main_win.open_devtools();
+                }
             }
 
             Ok(())

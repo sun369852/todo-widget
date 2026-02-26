@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTodoStore } from "./store";
-import { getCurrentWindow, getAllWindows } from "@tauri-apps/api/window";
-import { emit } from "@tauri-apps/api/event";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+import { invoke } from "@tauri-apps/api/core";
 import BubbleWindow from "./components/BubbleWindow";
 import "./App.css";
 
@@ -97,14 +97,16 @@ function App() {
     setNewTodoPriority("medium");
   };
 
-  // Close window - hide main and show bubble
+  // Close window - hide main and show bubble via Tauri command
   const handleClose = async () => {
-    await emit("show-bubble", {});
+    await invoke("close_to_bubble");
   };
 
-  // Window dragging - only on header
+  // Window dragging - only on header, EXCLUDE buttons
   const handleDragMouseDown = async (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest('.app-header')) {
+    const target = e.target as HTMLElement;
+    // 排除 header-actions 区域（关闭按钮等），否则 startDragging 会拦截点击
+    if (target.closest('.app-header') && !target.closest('.header-actions')) {
       await getCurrentWindow().startDragging();
     }
   };
