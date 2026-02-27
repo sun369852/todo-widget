@@ -125,6 +125,16 @@ function App() {
 
   return (
     <div className="app-container" onMouseDown={handleDragMouseDown}>
+      {/* --- Resize Handles for frameless transparent window --- */}
+      <div className="resize-edge top" onMouseDown={(e) => { e.stopPropagation(); getCurrentWindow().startResizeDragging('North'); }} />
+      <div className="resize-edge bottom" onMouseDown={(e) => { e.stopPropagation(); getCurrentWindow().startResizeDragging('South'); }} />
+      <div className="resize-edge left" onMouseDown={(e) => { e.stopPropagation(); getCurrentWindow().startResizeDragging('West'); }} />
+      <div className="resize-edge right" onMouseDown={(e) => { e.stopPropagation(); getCurrentWindow().startResizeDragging('East'); }} />
+      <div className="resize-corner top-left" onMouseDown={(e) => { e.stopPropagation(); getCurrentWindow().startResizeDragging('NorthWest'); }} />
+      <div className="resize-corner top-right" onMouseDown={(e) => { e.stopPropagation(); getCurrentWindow().startResizeDragging('NorthEast'); }} />
+      <div className="resize-corner bottom-left" onMouseDown={(e) => { e.stopPropagation(); getCurrentWindow().startResizeDragging('SouthWest'); }} />
+      <div className="resize-corner bottom-right" onMouseDown={(e) => { e.stopPropagation(); getCurrentWindow().startResizeDragging('SouthEast'); }} />
+
       {/* Header */}
       <header className="app-header">
         <span className="app-title">待办</span>

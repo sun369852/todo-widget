@@ -1,57 +1,42 @@
-# Todo Widget
+# Todo Widget (待办事项悬浮窗)
 
-Windows 桌面悬浮待办事项小组件，以圆形气泡形式常驻桌面顶层，点击展开完整待办管理面板。
+这是一个轻量级、现代化的桌面端待办事项悬浮插件。该应用采用底层原生双窗口架构设计，提供了一个迷你悬浮“气泡”以及一个全功能的“主界面”，旨在提供无缝、不打断用户心流的桌面原生体验。
 
-## 技术栈
+## 🌟 核心特性
+- **双重 UI 模式**：
+  - **默认气泡模式**：一个小巧、非侵入性的悬浮圆形指示器。
+  - **全能主界面**：包含任务列表、优先级标记、搜索、标签过滤的完整管理面板。
+- **像素级完美贴合互动**：点击气泡弹出主界面时，主界面的内边距将通过精确算法（抵消系统幽灵边框）100% 严丝合缝地贴合气泡。
+- **防丢失屏幕边缘吸附**：无论你怎么拖拽气泡，系统底层事件都会将其牢牢“吸附”并锁定在当前显示器的可视边缘内，永远不会弄丢。
+- **无边框响应式窗口**：支持八个方向随意拖放拉伸主界面，所有 CSS 内部元素自动完美伸缩换行匹配，不会遮挡或挤走拖拽边框区域。
 
-- **Tauri 2.x** (Rust) — 桌面框架
-- **React 19** + TypeScript — 前端
-- **Zustand 5** — 状态管理
-- **SQLite** — 数据持久化
-- **Vite 7** — 构建工具
+## 💻 技术栈架构
+- **前端页面**：React + TypeScript + Vite，采用纯 CSS 编写现代化毛玻璃高级渐变风。
+- **后端引擎**：Tauri v2 (Rust)，负责接管原生系统托盘、双窗口生命周期通信、尺寸精确运算和坐标限制。
+- **状态管理**：Zustand
+- **本地化存储**：Tauri Plugin Store / SQLite 预留
 
-## 功能
+## 🚀 本地运行与构建
 
-- 🔵 圆形悬浮球，始终顶置、不占任务栏
-- 📝 待办事项增删改查
-- 🔍 搜索与状态过滤（全部 / 进行中 / 已完成）
-- 🎯 优先级标记（低 / 中 / 高）
-- 💾 SQLite 本地持久化 + 乐观更新
-- 🖱️ 悬浮球 & 主窗口均可拖拽
-- 📌 系统托盘图标
-- 🔄 气泡 ↔ 主窗口无缝切换
+### 环境要求
+- [Node.js](https://nodejs.org/) (官方推荐 LTS 版本)
+- [Rust](https://www.rust-lang.org/) 环境
+- Tauri 的相关 C++ / Windows 构建构建工具依赖（Visual Studio Build Tools）
 
-## 快速开始
-
+### 开发环境
 ```bash
 # 安装依赖
 npm install
 
-# 开发模式
+# 启动带热重载的开发服务器 (同时启动 Vite 和 Tauri 桌面端)
 npm run tauri dev
+```
 
-# 生产构建
+### 打包发布
+```bash
+# 构建最终的可执行单文件 / 安装程序 (.exe / .msi 等)
 npm run tauri build
 ```
 
-## 项目结构
-
-```
-src/                          # React 前端
-├── App.tsx                   # 主界面
-├── store.ts                  # Zustand 状态管理
-├── types.ts                  # 类型定义
-├── components/
-│   └── BubbleWindow.tsx      # 悬浮球组件
-└── services/
-    └── database.ts           # SQLite 数据库操作
-
-src-tauri/                    # Rust 后端
-├── src/lib.rs                # 应用逻辑 & IPC 命令
-├── tauri.conf.json           # 窗口 & 插件配置
-└── Cargo.toml                # Rust 依赖
-```
-
-## 推荐 IDE
-
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+## 🧠 技术参考
+如果您打算继续开发（或使用 AI 助手辅助开发）本程序，请务必首先查阅写给 AI 的内部提示词文件：`CLAUDE.md`，以及详细需求和技术拆解：`REQUIREMENTS.md` 与 `TECHNICAL_DOCS.md`。

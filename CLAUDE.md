@@ -1,107 +1,36 @@
-# CLAUDE.md
+# Todo Widget 内部 AI 开发与编程指南 (CLAUDE.md)
 
-This file provides project-specific guidance for Claude Code when working with this codebase.
+作为后续协助开发本项目的人工智能（AI Assistant）或开发者，你**必须在开始敲代码或修改现有逻辑之前**仔细通读这些核心开发公约与上下文背景。本项目存在极其精密的坐标几何算法和无缝悬浮窗多重联动状态，轻率的代码修改将极度容易摧毁当前完美的沉浸式用户体验。
 
-## Project Overview
+## 🎯 必读：项目的极简、高级感愿景
+- **UI 设计原则**：这是一个极度克制、甚至“没有 UI 层存在感”的应用。整个系统剥离了 Windows 系统所有的原生外框（标题栏、控制按钮、阴影），完全依赖纯净的高级毛玻璃流体渐变 CSS 进行视觉呈现。你应当坚守并强化这种风格，**禁止向界面注入原生的基础滚动条、老旧样式的控件或者打破现有圆角梯级的矩形盒子**。
+- **操作原则**：用户的交互必须如同呼吸一般顺滑。绝不弹出版权提示或二次确认，核心管理逻辑通过气泡与主窗口的互斥弹出进行掩盖（点击主界面原生关闭等于返回气泡）。
 
-**Project Name**: Todo Widget
-**Type**: Windows Desktop Floating Todo Application
-**Tech Stack**: Tauri 2.x + React 19 + TypeScript + Tailwind CSS 4 + SQLite + Zustand
+## ⚠️ 严禁破坏的三大基石逻辑（绝对公约）
 
-## Key Files
+如果你需要在未来修 Bug 或者加功能，**以下三大逻辑在没有经过用户极强目的性的命令前，你一行都不许乱改**：
 
-| File | Description |
-|------|-------------|
-| `src/App.tsx` | Main todo application component (267 lines). Handles all UI rendering, todo CRUD, filtering, search, and custom frameless window |
-| `src/App.css` | Dark theme styles with CSS custom properties |
-| `src/store.ts` | Zustand store for state management with optimistic updates |
-| `src/types.ts` | TypeScript interfaces (Todo, Category) |
-| `src/services/database.ts` | SQLite database service via tauri-plugin-sql |
-| `src-tauri/src/lib.rs` | Rust plugin registration and system tray setup |
-| `src-tauri/src/main.rs` | Tauri entry point |
-| `src-tauri/tauri.conf.json` | Window and app configuration |
+### 1. Tauri 幽灵边框（OS Ghost Borders）抵消算法
+Windows 系统的 `tauri.conf.json` 配置了 `"resizable": true`, `"decorations": false`, `"transparent": true` 后，系统会在窗口四个方向强制塞进约 8px 宽的不可见透明“缩放抓取层”。
+**这意味着 `outer_size` 实际上并不是用户能肉眼看到的物理 UI 大小**！
+- **处理规范**：在 `src-tauri/src/lib.rs` 的所有弹窗定位计算中，必须先算出系统边框差值。
+  算法为：`ghost_border_width = (outer_size.width - inner_size.width) / 2.0`。
+- **定位规范**：在任何需要视觉边缘对齐的运算中（如：让主界面的实心右边缘 紧挨着气泡的高亮左边缘），都必须基于两者的 **inner bounds (即包含补白 `padding` 换算后的真正发光像素层)** 以及 `ghost_border` 的偏移量，经过 `scale_factor` 并进行严谨演算。具体参考现有的 `show_main_window` 代码，这是来之不易的正确算法。
 
-## Common Commands
+### 2. Current Monitor 超屏强制锁定算法 (Screen Clamp)
+悬浮气泡不能在用户胡乱拖拽时丢失在屏幕外！在修改底层事件流时注意：
+- 气泡拖拽时会触发大量的 `WindowEvent::Moved`。
+- 在 `lib.rs` 的闭包中，代码实时获取了它所在的 `current_monitor()` 尺寸，并通过气泡本身的 `inner_size` 及去除了 Ghost Border 后的视觉中心圆球尺寸进行换算。
+- 当气泡实际圆球的物理光斑触碰到甚至超过了显示器边界的四边（上、下、左、右）坐标时，代码会立即发送带有纠正坐标的 `set_position` 将它完美吸入当前边界（注意此处容差设计为 `min_x - 0.5` 等防止微抖动）。
 
-```bash
-# Install dependencies
-npm install
+### 3. CSS Flexbox 百分百视区锚定防御
+如果主界面里的 `Todo ` 任务列表项被撑得太满（比如高度或者内部文本过长）：
+由于外部透明窗口开启了自由拖拽（利用 Webview2 提供的主界面的 四角透明 `<div>` 发送的 `startResizeDragging` 请求），**一旦内部 DOM 脱离 `100vw / 100vh` 发生了 overflow (溢流/溢出) 导致元素膨胀，它就会把最外层的“隐形热区抓手”给寄到窗口之外！** 这会导致用户的鼠标无论放在窗口边缘怎么拉都触发不了缩放操作！
+- **防御规范**：在 `src/App.css` 中，根容器层必然包含了 `width: 100vw; height: 100vh; overflow: hidden;` 这三大安全锁。
+- **弹性规范**：对于其中无限延展的任务列表（如 `.todo-list` 父级容器），必须要配置 `min-height: 0;`。这打破了 CSS 默认的包裹无限内容的规则，允许由于其父容器限制而发生真正的折叠收缩，从而保护四个角的缩放拖拽功能正常。
 
-# Start development server
-npm run tauri dev
-
-# Build for production
-npm run tauri build
-```
-
-## Features
-
-### Implemented
-- Add/edit/delete todos with priority (low/medium/high)
-- Toggle todo completion status
-- Filter todos (All/Active/Completed)
-- Search todos by title
-- Custom frameless window with drag support
-- System tray with context menu
-- SQLite persistence
-- Dark theme UI
-- Loading states and error handling
-- Optimistic UI updates
-
-### Configured but Not Fully Integrated
-- Categories (database schema exists, store has actions, but UI incomplete)
-- Due dates (schema supports it, not in UI)
-- Global shortcuts plugin (installed, not used)
-- Autostart plugin (installed, no UI toggle)
-- Window position persistence
-
-## Architecture
-
-### State Management (Zustand)
-- `useTodoStore` in `src/store.ts`
-- State: todos, categories, filter, searchQuery, selectedCategory, isLoading, error
-- Actions: loadTodos, addTodo, updateTodo, toggleTodo, deleteTodo, category actions
-
-### Database Schema
-```sql
-CREATE TABLE todos (
-  id INTEGER PRIMARY KEY,
-  title TEXT,
-  completed INTEGER DEFAULT 0,
-  priority TEXT DEFAULT 'medium',
-  category TEXT DEFAULT 'Default',
-  due_date TEXT,
-  created_at TEXT
-);
-
-CREATE TABLE categories (
-  id INTEGER PRIMARY KEY,
-  name TEXT UNIQUE,
-  color TEXT DEFAULT '#6366f1'
-);
-```
-
-### Window Configuration
-- Size: 360x520 (min: 320x400)
-- Frameless, transparent, always-on-top
-- Skip taskbar, fixed size
-
-## Known Issues
-
-1. Category feature incomplete - UI doesn't fully connect to category system
-2. Due date not implemented in UI
-3. Window position not persisted (always opens at center)
-4. Global shortcut not implemented
-5. No minimize button (only close hides to tray)
-6. Path must be English-only for Rust compilation
-
-## UI Language
-
-The UI is in Chinese:
-- 待办 (Todo)
-- 全部 (All)
-- 进行中 (Active)
-- 已完成 (Completed)
-- 优先级 (Priority)
-- 低/中/高 (Low/Medium/High)
-- 退出 (Quit)
+## 🛠 开发流程建议
+0. 本项目使用 pnpm / npm 与 cargo 的混合应用进行编译；修改 `.tsx / .css` 属于热重载区，修改 `.rs / .json` 会激活更慢的后端重载。
+1. **优先参考** `REQUIREMENTS.md`，理解用户的设计直觉。
+2. **查验文件日志**，`TECHNICAL_DOCS.md` 里有更为数学公式化的推演过程供阅读和复制。
+3. 如果发生 Tauri v2 升级导致语法过时，请确保 `startResizeDragging` 的传参类型及 `WindowEvent` 的 API 变更能够同样满足上述边界条件。
