@@ -51,11 +51,16 @@ body {
   flex-direction: column;
   background: var(--bg-primary);
   border-radius: 8px;
-  /* Added rounded corners for an elegant look when resizing */
   overflow: hidden;
   border: 1px solid var(--border);
-  /* A faint border when resizable helps define the edge */
   position: relative;
+}
+
+/* While dragging: force grabbing cursor everywhere */
+.app-container.is-dragging,
+.app-container.is-dragging * {
+  cursor: grabbing !important;
+  user-select: none !important;
 }
 
 /* --- Frameless Window Resize Handles --- */
@@ -134,7 +139,6 @@ body {
   align-items: center;
   padding: 8px 20px;
   background: var(--bg-secondary);
-  /* border-bottom: 1px solid var(--border); */
   cursor: move;
   -webkit-app-region: drag;
   min-height: 20px;
@@ -148,8 +152,32 @@ body {
 
 .header-actions {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   -webkit-app-region: no-drag;
+}
+
+.header-icon-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.header-icon-btn:hover {
+  background: var(--bg-hover);
+  color: var(--accent);
+}
+
+.header-icon-btn.active {
+  background: rgba(99, 102, 241, 0.2);
+  color: var(--accent);
 }
 
 .close-btn {
@@ -169,6 +197,170 @@ body {
 .close-btn:hover {
   background: var(--danger);
   color: white;
+}
+
+/* ===== Category Management Panel ===== */
+.category-panel {
+  max-height: 0;
+  overflow: hidden;
+  background: var(--bg-secondary);
+  border-bottom: 0 solid var(--border);
+  transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+    border-bottom-width 0.1s ease,
+    padding 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.category-panel.open {
+  max-height: 200px;
+  border-bottom: 1px solid var(--border);
+}
+
+.category-panel-content {
+  padding: 8px 20px 10px;
+}
+
+.category-panel-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.category-panel-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--bg-hover);
+  border-radius: 14px;
+  font-size: 12px;
+  color: var(--text-primary);
+  transition: all 0.2s;
+}
+
+.category-panel-item:hover {
+  background: var(--border);
+}
+
+.category-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.category-panel-name {
+  white-space: nowrap;
+}
+
+.category-delete-btn {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.category-delete-btn:hover {
+  background: rgba(239, 68, 68, 0.3);
+  color: var(--danger);
+}
+
+.category-add-form {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.category-input {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 10px !important;
+  font-size: 12px !important;
+}
+
+.category-color-picker {
+  width: 28px;
+  height: 28px;
+  padding: 2px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-primary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.category-color-picker::-webkit-color-swatch-wrapper {
+  padding: 1px;
+}
+
+.category-color-picker::-webkit-color-swatch {
+  border: none;
+  border-radius: 3px;
+}
+
+.category-add-btn {
+  padding: 5px 12px !important;
+  font-size: 12px !important;
+}
+
+/* ===== Category Filter Bar ===== */
+.category-bar {
+  display: flex;
+  gap: 4px;
+  padding: 4px 20px 6px;
+  overflow-x: auto;
+  background: var(--bg-primary);
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.category-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.category-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.category-chip:hover {
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+.category-chip.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.category-chip .category-dot {
+  width: 6px;
+  height: 6px;
+}
+
+.category-chip.active .category-dot {
+  border: 1px solid rgba(255, 255, 255, 0.6);
 }
 
 /* Buttons */
@@ -317,6 +509,27 @@ body {
   color: var(--text-secondary);
 }
 
+/* ===== Todo Item Wrapper (squeeze animation) ===== */
+.todo-item-wrapper {
+  position: relative;
+  will-change: transform;
+  /* NO transition by default — prevents flash on drop */
+}
+
+/* Squeeze animation ONLY while dragging is active.
+   When isDragging→false the class is gone, items snap immediately. */
+.app-container.is-dragging .todo-item-wrapper:not(.is-dragging-source) {
+  transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* Dragged item wrapper: instant follow + float above all others */
+.todo-item-wrapper.is-dragging-source {
+  transition: none !important;
+  z-index: 100;
+}
+
+
+/* Todo Item */
 .todo-item {
   display: flex;
   align-items: center;
@@ -325,15 +538,58 @@ body {
   margin-bottom: 4px;
   background: var(--bg-secondary);
   border-radius: 8px;
-  transition: all 0.2s;
+  border-left: 2.5px solid transparent;
+  transition: background 0.2s ease, border-color 0.2s ease;
+  cursor: default;
 }
 
 .todo-item:hover {
   background: var(--bg-hover);
+  border-left-color: rgba(99, 102, 241, 0.4);
 }
 
 .todo-item.completed {
   opacity: 0.6;
+}
+
+/* Source item being dragged: lifted state — scaled + glow */
+.todo-item.is-source {
+  opacity: 0.5;
+  transform: scale(0.97);
+  border-left-color: var(--accent) !important;
+  box-shadow: 0 0 0 1.5px rgba(99, 102, 241, 0.45),
+    0 4px 16px rgba(99, 102, 241, 0.18);
+}
+
+/* ===== Drag Handle — always visible at low opacity ===== */
+.drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 28px;
+  color: var(--text-secondary);
+  cursor: grab;
+  flex-shrink: 0;
+  /* Always visible at low opacity so user knows item is draggable */
+  opacity: 0.18;
+  transition: opacity 0.2s ease, color 0.2s ease;
+  margin-right: 2px;
+}
+
+.todo-item:hover .drag-handle {
+  /* Brighten fully on row hover */
+  opacity: 1;
+  color: var(--accent);
+}
+
+.drag-handle:hover {
+  opacity: 1;
+  color: var(--accent);
+}
+
+.drag-handle:active {
+  color: var(--accent-hover);
 }
 
 .todo-content {
@@ -341,10 +597,18 @@ body {
   align-items: center;
   gap: 8px;
   flex: 1;
+  min-width: 0;
+}
+
+.todo-title-area {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
 }
 
 .todo-title {
-  flex: 1;
   font-size: 13px;
   color: var(--text-primary);
   word-break: break-word;
@@ -355,15 +619,52 @@ body {
   color: var(--text-secondary);
 }
 
+.todo-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.todo-category-tag {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  border: 1px solid;
+  line-height: 1.4;
+}
+
+.subtask-progress {
+  font-size: 10px;
+  color: var(--text-secondary);
+  background: rgba(99, 102, 241, 0.15);
+  padding: 1px 6px;
+  border-radius: 8px;
+  line-height: 1.4;
+}
+
 .todo-actions {
   display: flex;
-  gap: 4px;
+  gap: 2px;
   opacity: 0;
   transition: opacity 0.2s;
+  flex-shrink: 0;
 }
 
 .todo-item:hover .todo-actions {
   opacity: 1;
+}
+
+/* ===== Expand/Collapse Button ===== */
+.expand-btn svg {
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.expand-btn.expanded svg {
+  transform: rotate(180deg);
+}
+
+.expand-btn:hover {
+  color: var(--accent) !important;
 }
 
 /* Checkbox */
@@ -372,6 +673,7 @@ body {
   display: flex;
   align-items: center;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .checkbox-wrapper input {
@@ -393,6 +695,12 @@ body {
   transition: all 0.2s;
 }
 
+.checkmark.small {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+}
+
 .checkbox-wrapper input:checked~.checkmark {
   background: var(--accent);
   border-color: var(--accent);
@@ -408,6 +716,12 @@ body {
   margin-bottom: 2px;
 }
 
+.checkbox-wrapper input:checked~.checkmark.small::after {
+  width: 4px;
+  height: 8px;
+  margin-bottom: 1px;
+}
+
 /* Priority Badge */
 .priority-badge {
   padding: 4px 8px;
@@ -415,6 +729,7 @@ body {
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
+  flex-shrink: 0;
 }
 
 .priority-badge.bg-green-500 {
@@ -461,11 +776,12 @@ body {
 
 .add-form .input {
   flex: 1;
-  min-width: 150px;
+  min-width: 100px;
 }
 
 .add-form .select {
   width: auto;
+  min-width: 70px;
 }
 
 /* Add Button */
@@ -489,6 +805,140 @@ body {
   border-color: var(--accent);
   color: var(--accent);
   background: rgba(99, 102, 241, 0.1);
+}
+
+/* ===== Subtask Section ===== */
+.subtask-section {
+  margin-left: 28px;
+  margin-right: 8px;
+  margin-bottom: 6px;
+  padding: 6px 0 6px 12px;
+  border-left: 2px solid var(--border);
+  animation: subtaskSlideIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes subtaskSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+    max-height: 0;
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 500px;
+  }
+}
+
+.subtask-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.subtask-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.subtask-item:hover {
+  background: var(--bg-hover);
+}
+
+.subtask-item.completed {
+  opacity: 0.5;
+}
+
+.subtask-title {
+  flex: 1;
+  font-size: 12px;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.subtask-title.completed {
+  text-decoration: line-through;
+  color: var(--text-secondary);
+}
+
+.subtask-delete-btn {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.15s;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.subtask-item:hover .subtask-delete-btn {
+  opacity: 1;
+}
+
+.subtask-delete-btn:hover {
+  background: rgba(239, 68, 68, 0.3);
+  color: var(--danger);
+}
+
+.subtask-add-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.subtask-input {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 8px !important;
+  font-size: 12px !important;
+  border-radius: 6px !important;
+  background: transparent !important;
+  border-color: transparent !important;
+  transition: all 0.2s;
+}
+
+.subtask-input:focus {
+  background: var(--bg-secondary) !important;
+  border-color: var(--accent) !important;
+}
+
+.subtask-input::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.6;
+}
+
+.subtask-add-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.subtask-add-btn:hover {
+  background: rgba(99, 102, 241, 0.2);
+  color: var(--accent);
 }
 
 /* Scrollbar - 完全隐藏 */
@@ -515,7 +965,6 @@ body {
   justify-content: center;
   transition: transform 0.2s, box-shadow 0.2s;
   box-shadow: 0 4px 10px rgba(99, 102, 241, 0.4);
-  /* Scaled down shadow */
   margin: 0;
   padding: 0;
   overflow: hidden;
@@ -528,12 +977,10 @@ body {
 .bubble-container:hover {
   transform: scale(1.05);
   box-shadow: 0 6px 15px rgba(99, 102, 241, 0.6);
-  /* Scaled down shadow */
 }
 
 .bubble-icon {
   font-size: 14px;
-  /* Shrunk text from 20px */
   font-weight: bold;
   color: white;
   pointer-events: none;

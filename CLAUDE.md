@@ -34,3 +34,21 @@ Windows 系统的 `tauri.conf.json` 配置了 `"resizable": true`, `"decorations
 1. **优先参考** `REQUIREMENTS.md`，理解用户的设计直觉。
 2. **查验文件日志**，`TECHNICAL_DOCS.md` 里有更为数学公式化的推演过程供阅读和复制。
 3. 如果发生 Tauri v2 升级导致语法过时，请确保 `startResizeDragging` 的传参类型及 `WindowEvent` 的 API 变更能够同样满足上述边界条件。
+
+---
+
+## 📋 已实现功能（2026-03-01 更新）
+
+### 任务管理扩展
+- **分类（标签）系统**：用户可自建任意颜色分类，分配给任务；可按分类过滤列表。无预置 Default 分类，所有分类由用户自主管理。
+- **子任务**：每个任务可展开子任务列表，支持新增、勾选、删除；父任务显示完成进度条。
+- **拖拽排序**：自定义鼠标事件方案（非 HTML5 原生 Drag & Drop），兼容 Tauri 窗口拖拽。排序持久化至 SQLite。
+
+### 拖拽动画技术细节（重要）
+- **直接 DOM 写入**：被拖 item 的 `translateY` 通过 `el.style.transform` 直接操作，绕过 React render，60fps 跟手无卡顿。
+- **快照碰撞检测**：`mousedown` 时冻结所有 item 的 `getBoundingClientRect()`；碰撞检测基于冻结数据 + 当前 shift 量计算视觉中心，稳定性与 item 实际高度无关。
+- **防闪设计**：松手时先同步更新 Zustand 再清除 React 拖拽 state（同一批次），挤压 transition 仅在 `.app-container.is-dragging` 内生效。
+
+### 性能与体验修复
+- 添加任务的静默刷新（不触发 `isLoading: true`，避免列表闪烁）
+- RAF 节流 + 死区 (±4px) 防 overIndex 抖动

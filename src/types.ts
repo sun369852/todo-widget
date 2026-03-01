@@ -5,7 +5,19 @@ export interface Todo {
   completed: boolean;
   priority: 'low' | 'medium' | 'high';
   category: string;
+  categoryId?: number;
   dueDate?: string;
+  sortOrder: number;
+  subtasks: Subtask[];
+  createdAt: string;
+}
+
+export interface Subtask {
+  id: number;
+  todoId: number;
+  title: string;
+  completed: boolean;
+  sortOrder: number;
   createdAt: string;
 }
 

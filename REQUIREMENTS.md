@@ -1,30 +1,39 @@
-# Todo Widget Requirements Document
+# Todo Widget 需求文档
 
-## Overview
-A lightweight, modern, floating To-Do List widget designed for desktop operating systems. The application prioritizes unobtrusive user experience, native OS integration, and high aesthetic quality. It utilizes a dual-window architecture: a mini "bubble" suspended on the screen, and the primary "main" to-do interface that toggles based on interactions with the bubble.
+## 概述
 
-## Core Features
+一个轻量级、现代化的桌面端待办事项悬浮插件。应用优先保证无打扰的用户体验、原生系统集成以及高水准的视觉美感。采用双窗口架构：屏幕上始终漂浮一个小"气泡"，点击后弹出功能齐全的"主界面"。
 
-### 1. Dual Interface Modes
-- **Bubble Widget Mode (Default)**: A small, non-intrusive floating circular icon that acts as an anchor on the screen.
-- **Main Interface Mode**: A full-featured To-Do list UI containing tasks, priorities, search, filters, and editing capabilities.
+---
 
-### 2. Interaction Flow
-- **Left-Click Bubble**: Toggles the visibility of the Main Interface. When the main interface appears, it MUST snap precisely adjacent to the bubble without visual gaps.
-- **Drag Bubble**: The user can drag the bubble around the screen. Dropping the bubble updates its fixed position.
-- **Screen Boundary Constraints**: The bubble must NEVER be draggable outside the visible bounds of the OS monitor. Dragging it off-screen will mechanically clamp it to the exact pixel edge of the monitor based on its internal visual circle, not just its invisible drag box.
-- **Close Main Interface**: Clicking the native OS close button on the Main Interface does NOT close the application. Instead, it hides the Main Interface and spawns the Bubble Widget directly beside the last known position of the Main Interface.
-- **Right-Click Bubble**: Opens a native OS context menu containing options like "Quit" to fully terminate the application.
-- **System Tray**: Contains an application icon with an option to fully terminate the application or toggle the Main Interface.
+## 核心功能
 
-### 3. Main Interface Capabilities
-- **Task Management**: Add, Edit, Delete, and mark tasks as Complete/In-Complete.
-- **Priorities**: Tasks can be tagged with priority levels (e.g., High, Medium, Low).
-- **Filtering & Search**: Support for finding specific tasks via title search and tabs to filter by completion status or priority.
-- **Free-Form Resizing**: The Main Interface must be resizable from all 8 directions and corners.
-- **Responsive Layout**: Resizing the Main Interface must not break the inner layout (CSS Flexbox). Content must seamlessly wrap or shrink without causing horizontal or vertical overflow that hides the resize grab handles.
+### 1. 双重界面模式
+- **气泡悬浮模式（默认）**：一个小巧、非侵入式的圆形浮动图标，始终驻留在桌面上。
+- **主界面模式**：包含任务列表、优先级标记、搜索、过滤和编辑功能的完整面板。
 
-## Visual & Aesthetic Requirements
-- **Theme**: Premium modern aesthetic featuring dynamic gradient backgrounds, smooth micro-animations, glassmorphism, and a cohesive vibrant color palette.
-- **Frameless/Border-less**: Both windows must be entirely stripped of native OS title bars, borders, and drop shadows to simulate an organic desktop overlay experience.
-- **Visual Sticking (Pixel-Perfect Alignment)**: When the Main Interface opens, its right internal visual edge must physically touch the left internal visual edge of the circular Bubble Widget. There must be zero pixel gaps despite DPI scaling changes or native OS "ghost borders" injected onto resizable windows.
+### 2. 交互流程
+- **单击气泡**：切换主界面的显示/隐藏。主界面出现时必须精确贴合气泡，无视觉间隙。
+- **拖拽气泡**：用户可在屏幕上自由拖动气泡，松手后位置被记录。
+- **屏幕边缘限制**：气泡永远不可被拖出显示器可视区域。拖至边缘时，系统以气泡内部视觉圆球为基准将其锁定在边界。
+- **关闭主界面**：点击主界面的系统关闭按钮不会退出程序，而是隐藏主界面并在原位显示气泡。
+- **右键气泡**：弹出原生系统菜单，包含"退出"等选项。
+- **系统托盘**：通过托盘图标可切换主界面或完全退出程序。
+
+### 3. 主界面功能
+- **任务管理**：新增、编辑、删除、勾选完成/未完成。
+- **优先级**：任务支持高/中/低三档优先级标记。
+- **过滤与搜索**：支持按标题搜索，以及按完成状态过滤。
+- **分类管理**：用户可自建分类（标签），每个分类有独立颜色；可对任务按分类筛选。所有分类由用户自主管理，无预置分类。
+- **子任务**：每个任务可展开添加子任务，支持独立勾选与删除，并在父任务上显示完成进度。
+- **拖拽排序**：任务列表支持通过拖拽把手对任务进行自由排序；排序结果持久化到本地数据库。
+- **自由缩放**：主界面支持从八个方向/角点自由拖拽调整大小。
+- **响应式布局**：调整大小时内部布局不得溢出，保证四角缩放抓手始终可用。
+
+---
+
+## 视觉与交互要求
+- **风格**：极简高级感，毛玻璃流体渐变，现代视觉层次。
+- **无边框**：两个窗口均剥除原生标题栏、边框和系统阴影。
+- **像素级对齐**：主界面打开时，其内部右侧视觉边缘必须与气泡内部圆球左侧边缘零间隙贴合。DPI 缩放和系统幽灵边框不得影响对齐精度。
+- **动画流畅**：操作反馈动画（如拖拽挤压、展开子任务）必须平滑自然，不得有闪烁或卡顿。

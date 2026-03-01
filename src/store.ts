@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { Todo, Category } from "./types";
+import { Todo, Subtask, Category } from "./types";
 import * as db from "./services/database";
 
 interface TodoStore {
@@ -7,22 +7,31 @@ interface TodoStore {
   categories: Category[];
   filter: "all" | "active" | "completed";
   searchQuery: string;
-  selectedCategory: string;
+  selectedCategoryId: number | null;
+  expandedTodoId: number | null;
   isLoading: boolean;
   error: string | null;
 
   // Actions
   loadTodos: () => Promise<void>;
   loadCategories: () => Promise<void>;
-  addTodo: (title: string, priority: string) => Promise<void>;
+  addTodo: (title: string, priority: string, categoryId?: number) => Promise<void>;
   updateTodo: (id: number, title: string, priority: string, category: string, dueDate?: string) => Promise<void>;
   toggleTodo: (id: number, completed: boolean) => Promise<void>;
   deleteTodo: (id: number) => Promise<void>;
+  reorderTodos: (fromIndex: number, toIndex: number) => Promise<void>;
   addCategory: (name: string, color: string) => Promise<void>;
   deleteCategory: (id: number) => Promise<void>;
   setFilter: (filter: "all" | "active" | "completed") => void;
   setSearchQuery: (query: string) => void;
-  setSelectedCategory: (category: string) => void;
+  setSelectedCategoryId: (categoryId: number | null) => void;
+
+  // Subtask actions
+  setExpandedTodoId: (id: number | null) => void;
+  loadSubtasks: (todoId: number) => Promise<void>;
+  addSubtask: (todoId: number, title: string) => Promise<void>;
+  toggleSubtask: (todoId: number, subtaskId: number, completed: boolean) => Promise<void>;
+  deleteSubtask: (todoId: number, subtaskId: number) => Promise<void>;
 }
 
 export const useTodoStore = create<TodoStore>((set, get) => ({
@@ -30,7 +39,8 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
   categories: [],
   filter: "all",
   searchQuery: "",
-  selectedCategory: "All",
+  selectedCategoryId: null,
+  expandedTodoId: null,
   isLoading: false,
   error: null,
 
@@ -45,7 +55,10 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
           completed: Boolean(t.completed),
           priority: t.priority,
           category: t.category,
+          categoryId: t.category_id ?? null,
           dueDate: t.due_date,
+          sortOrder: t.sort_order ?? 0,
+          subtasks: [],
           createdAt: t.created_at,
         })),
         isLoading: false,
@@ -70,28 +83,47 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
     }
   },
 
-  addTodo: async (title: string, priority: string) => {
-    // 乐观更新：先添加本地状态
+  addTodo: async (title: string, priority: string, categoryId?: number) => {
+    const previousTodos = get().todos;
+    const maxOrder = previousTodos.reduce((max, t) => Math.max(max, t.sortOrder), 0);
     const newTodo: Todo = {
       id: Date.now(),
       title,
       completed: false,
       priority: priority as 'low' | 'medium' | 'high',
       category: 'Default',
+      categoryId: categoryId ?? undefined,
+      sortOrder: maxOrder + 1,
+      subtasks: [],
       createdAt: new Date().toISOString(),
     };
-    const previousTodos = get().todos;
-    set({ todos: [newTodo, ...get().todos] });
+    set({ todos: [...get().todos, newTodo] });
     try {
-      await db.addTodo(title, priority);
+      await db.addTodo(title, priority, categoryId);
+      // Silent reload: get real ID from DB without setting isLoading:true (avoids flicker)
+      const freshTodos = await db.getTodos();
+      const currentTodos = get().todos;
+      set({
+        todos: freshTodos.map((t: any) => ({
+          id: t.id,
+          title: t.title,
+          completed: Boolean(t.completed),
+          priority: t.priority,
+          category: t.category,
+          categoryId: t.category_id ?? null,
+          dueDate: t.due_date,
+          sortOrder: t.sort_order ?? 0,
+          // Preserve any already-loaded subtasks
+          subtasks: currentTodos.find((todo) => todo.id === t.id)?.subtasks ?? [],
+          createdAt: t.created_at,
+        })),
+      });
     } catch (error) {
-      // 回滚状态
       set({ todos: previousTodos, error: String(error) });
     }
   },
 
   updateTodo: async (id, title, priority, category, dueDate) => {
-    // 乐观更新：先更新本地状态
     const previousTodos = get().todos;
     set({
       todos: get().todos.map((todo) =>
@@ -101,13 +133,11 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
     try {
       await db.updateTodo(id, title, priority, category, dueDate);
     } catch (error) {
-      // 回滚状态
       set({ todos: previousTodos, error: String(error) });
     }
   },
 
   toggleTodo: async (id, completed) => {
-    // 乐观更新：先更新本地状态
     const previousTodos = get().todos;
     set({
       todos: get().todos.map((todo) =>
@@ -117,13 +147,11 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
     try {
       await db.toggleTodo(id, completed);
     } catch (error) {
-      // 回滚状态
       set({ todos: previousTodos, error: String(error) });
     }
   },
 
   deleteTodo: async (id) => {
-    // 乐观更新：先更新本地状态
     const previousTodos = get().todos;
     set({
       todos: get().todos.filter((todo) => todo.id !== id),
@@ -131,8 +159,25 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
     try {
       await db.deleteTodo(id);
     } catch (error) {
-      // 回滚状态
       set({ todos: previousTodos, error: String(error) });
+    }
+  },
+
+  reorderTodos: async (fromIndex: number, toIndex: number) => {
+    const todos = [...get().todos];
+    const [moved] = todos.splice(fromIndex, 1);
+    todos.splice(toIndex, 0, moved);
+
+    // Re-assign sort_order
+    const updated = todos.map((t, i) => ({ ...t, sortOrder: i + 1 }));
+    set({ todos: updated });
+
+    try {
+      await db.reorderTodos(updated.map((t) => ({ id: t.id, sort_order: t.sortOrder })));
+    } catch (error) {
+      set({ error: String(error) });
+      // Reload from DB on error
+      await get().loadTodos();
     }
   },
 
@@ -150,6 +195,10 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
       await db.deleteCategory(id);
       await get().loadCategories();
       await get().loadTodos();
+      // If current filter was this category, reset
+      if (get().selectedCategoryId === id) {
+        set({ selectedCategoryId: null });
+      }
     } catch (error) {
       set({ error: String(error) });
     }
@@ -157,5 +206,83 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
 
   setFilter: (filter) => set({ filter }),
   setSearchQuery: (query) => set({ searchQuery: query }),
-  setSelectedCategory: (category) => set({ selectedCategory: category }),
+  setSelectedCategoryId: (categoryId) => set({ selectedCategoryId: categoryId }),
+
+  setExpandedTodoId: (id) => {
+    const currentExpanded = get().expandedTodoId;
+    // Toggle: if same id, collapse; otherwise expand new
+    set({ expandedTodoId: currentExpanded === id ? null : id });
+    if (id !== null && currentExpanded !== id) {
+      get().loadSubtasks(id);
+    }
+  },
+
+  loadSubtasks: async (todoId: number) => {
+    try {
+      const subtasks = await db.getSubtasks(todoId);
+      const mapped: Subtask[] = subtasks.map((s: any) => ({
+        id: s.id,
+        todoId: s.todo_id,
+        title: s.title,
+        completed: Boolean(s.completed),
+        sortOrder: s.sort_order ?? 0,
+        createdAt: s.created_at,
+      }));
+      set({
+        todos: get().todos.map((todo) =>
+          todo.id === todoId ? { ...todo, subtasks: mapped } : todo
+        ),
+      });
+    } catch (error) {
+      set({ error: String(error) });
+    }
+  },
+
+  addSubtask: async (todoId: number, title: string) => {
+    try {
+      await db.addSubtask(todoId, title);
+      await get().loadSubtasks(todoId);
+    } catch (error) {
+      set({ error: String(error) });
+    }
+  },
+
+  toggleSubtask: async (todoId: number, subtaskId: number, completed: boolean) => {
+    // Optimistic update
+    set({
+      todos: get().todos.map((todo) =>
+        todo.id === todoId
+          ? {
+            ...todo,
+            subtasks: todo.subtasks.map((s) =>
+              s.id === subtaskId ? { ...s, completed } : s
+            ),
+          }
+          : todo
+      ),
+    });
+    try {
+      await db.toggleSubtask(subtaskId, completed);
+    } catch (error) {
+      set({ error: String(error) });
+      await get().loadSubtasks(todoId);
+    }
+  },
+
+  deleteSubtask: async (todoId: number, subtaskId: number) => {
+    // Optimistic update
+    set({
+      todos: get().todos.map((todo) =>
+        todo.id === todoId
+          ? { ...todo, subtasks: todo.subtasks.filter((s) => s.id !== subtaskId) }
+          : todo
+      ),
+    });
+    try {
+      await db.deleteSubtask(subtaskId);
+    } catch (error) {
+      set({ error: String(error) });
+      await get().loadSubtasks(todoId);
+    }
+  },
 }));
